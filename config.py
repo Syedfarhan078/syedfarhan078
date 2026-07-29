@@ -1,14 +1,10 @@
 # Configuration for the Terminal-themed GitHub Profile README Generator
 
-# Custom Cyberpunk / Fastfetch-style ASCII Art Logo (representing initials "SF")
+# Custom Cyberpunk / Fastfetch-style ASCII Art Logo (representing name "FARHAN")
 ASCII_LOGO = """
-  ▄████████    ▄████████ 
- ▄███▄▄▄▄██▀  ▄███▀▀▀▀▀  
- ▀███▀▀▀▀▀    ███▀       
- ▀███████████ ███▄▄▄▄▄▄  
-          ███ ▀███▀▀▀▀▀  
- ▄▄▄▄▄▄▄▄███▀  ███       
- ▀▀▀▀▀▀▀▀▀     ███       
+ █▀▀ ▄▀█ █▀█ █ █ ▄▀█ █▄ █
+ █▀  █▀█ █▀▄ █▀█ █▀█ █ ▀█
+ ▀   ▀ ▀ ▀ ▀ ▀ ▀ ▀ ▀ ▀  ▀
 """
 
 # Profile details and focus areas
@@ -16,7 +12,7 @@ PROFILE = {
     "username": "syedfarhan078",
     "name": "Syed Farhan Ahmed",
     "title": "AI & Machine Learning Engineer",
-    "subtitle": "Full Stack Developer | Open Source Enthusiast | Problem Solver",
+    "subtitle": "Backend Developer | Open Source Enthusiast | Problem Solver",
     "location": "Bengaluru, India",
     "focus": [
         "AI Engineering",
