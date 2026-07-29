@@ -34,7 +34,7 @@
 </linearGradient>
 </defs>
 <style>
-/* Styling & Animations */
+/* Styling and Animations */
 .terminal-window {
 box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
 }
