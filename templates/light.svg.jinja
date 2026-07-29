@@ -1,0 +1,273 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {{ svg_width }} {{ svg_height }}" width="100%" height="100%">
+  <defs>
+    <!-- Google Fonts import -->
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;600;700;800&amp;display=swap');
+    </style>
+
+    <!-- Soft Drop Shadow Filters for Light Mode -->
+    <filter id="glow-accent" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComponentTransfer in="blur" result="glow">
+        <feFuncA type="linear" slope="0.15" />
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode in="glow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="glow-profile" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComponentTransfer in="blur" result="glow">
+        <feFuncA type="linear" slope="0.2" />
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode in="glow" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Clip path for circular profile picture -->
+    <clipPath id="profile-clip">
+      <circle cx="165" cy="255" r="65" />
+    </clipPath>
+
+    <!-- Header Gradient -->
+    <linearGradient id="header-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="{{ theme.terminal_bg }}" />
+      <stop offset="100%" stop-color="{{ theme.background }}" />
+    </linearGradient>
+  </defs>
+
+  <style>
+    /* Styling & Animations */
+    .terminal-window {
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    }
+    .text-mono {
+      font-family: 'Fira Code', 'Consolas', monospace;
+    }
+    .text-sans {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    
+    /* Blinking Cursor Animation */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .cursor {
+      animation: blink 1s infinite;
+      fill: {{ theme.cursor }};
+    }
+
+    /* Subtle Border Pulse */
+    @keyframes pulse-border {
+      0%, 100% { stroke: {{ theme.border }}; }
+      50% { stroke: {{ theme.accent }}; }
+    }
+    .active-border {
+      animation: pulse-border 8s infinite ease-in-out;
+    }
+
+    /* Hover States */
+    .window-btn {
+      transition: transform 0.2s ease;
+    }
+    .window-btn:hover {
+      transform: scale(1.15);
+    }
+    .project-card {
+      transition: all 0.25s ease-in-out;
+    }
+    .project-card:hover .card-border {
+      stroke: {{ theme.accent }};
+      stroke-width: 1.5px;
+      filter: url(#glow-accent);
+    }
+    .project-card:hover {
+      opacity: 0.95;
+    }
+    .tech-badge {
+      transition: all 0.2s ease-in-out;
+    }
+    .tech-badge:hover .badge-border {
+      stroke: {{ theme.accent }};
+      stroke-width: 1.25px;
+      fill: {{ theme.border }};
+    }
+    .social-link {
+      transition: fill 0.25s ease;
+    }
+    .social-link:hover {
+      fill: {{ theme.accent }};
+    }
+  </style>
+
+  <!-- Main Terminal Window Frame -->
+  <rect x="5" y="5" width="940" height="570" rx="10" fill="{{ theme.terminal_bg }}" stroke="{{ theme.border }}" stroke-width="1.5" class="terminal-window active-border" />
+
+  <!-- Window Title Bar -->
+  <path d="M 5,15 A 10,10 0 0 1 15,5 L 935,5 A 10,10 0 0 1 945,15 L 945,38 L 5,38 Z" fill="url(#header-grad)" stroke="{{ theme.border }}" stroke-width="1" />
+  
+  <!-- Window Controls (macOS style) -->
+  <g class="window-btn" transform="translate(20, 21.5)">
+    <circle cx="0" cy="0" r="6" fill="{{ theme.window_control.close }}" />
+    <circle cx="18" cy="0" r="6" fill="{{ theme.window_control.minimize }}" />
+    <circle cx="36" cy="0" r="6" fill="{{ theme.window_control.maximize }}" />
+  </g>
+
+  <!-- Terminal Window Title -->
+  <text x="475" y="26" fill="{{ theme.subtext }}" class="text-mono" font-size="12" text-anchor="middle">{{ username }}@linux-desktop: ~</text>
+
+  <!-- ========================================== -->
+  <!-- LEFT COLUMN (ASCII, Photo, System Info)    -->
+  <!-- ========================================== -->
+
+  <!-- ASCII Art Logo -->
+  <g transform="translate(45, 65)">
+    <text fill="{{ theme.accent }}" class="text-mono" font-size="12" xml:space="preserve">
+      {%- for line in ascii_logo.split('\n') %}
+      <tspan x="0" dy="15">{{ line }}</tspan>
+      {%- endfor %}
+    </text>
+  </g>
+
+  <!-- Profile Image Container -->
+  <!-- Glow Circle Background -->
+  <circle cx="165" cy="255" r="66" fill="none" stroke="{{ theme.accent }}" stroke-width="2.5" filter="url(#glow-profile)" opacity="0.6" />
+  <circle cx="165" cy="255" r="65" fill="none" stroke="{{ theme.border }}" stroke-width="1.5" />
+  
+  <!-- The Circular Profile Image -->
+  <image href="{{ profile_image_b64 }}" x="100" y="190" width="130" height="130" clip-path="url(#profile-clip)" />
+
+  <!-- Terminal Shell Status Information -->
+  <g transform="translate(40, 360)" class="text-mono" font-size="12" fill="{{ theme.text }}">
+    <!-- Prompt Line -->
+    <text x="0" y="0">
+      <tspan fill="{{ theme.accent }}" font-weight="bold">{{ username }}</tspan>@AIT:~$ neofetch
+    </text>
+    
+    <!-- Host Information -->
+    <text x="0" y="24">
+      <tspan fill="{{ theme.subtext }}">Host:</tspan> Atria Inst. of Tech
+    </text>
+    
+    <!-- Status Line -->
+    <text x="0" y="44">
+      <tspan fill="{{ theme.subtext }}">Status:</tspan> <tspan fill="{{ theme.accent_green }}" font-weight="bold">Active</tspan>
+    </text>
+    
+    <!-- Uptime Line -->
+    <text x="0" y="64">
+      <tspan fill="{{ theme.subtext }}">Uptime:</tspan> 24/7 coding
+    </text>
+
+    <!-- Memory visual bar -->
+    <text x="0" y="84">
+      <tspan fill="{{ theme.subtext }}">Load:</tspan> [<tspan fill="{{ theme.accent }}">███████</tspan><tspan fill="{{ theme.border }}">░░░░░</tspan>] 58%
+    </text>
+  </g>
+
+  <!-- Neofetch Decorative Color Blocks -->
+  <g transform="translate(40, 480)">
+    <rect x="0" y="0" width="22" height="12" fill="#ff5f56" rx="2" />
+    <rect x="28" y="0" width="22" height="12" fill="#ffbd2e" rx="2" />
+    <rect x="56" y="0" width="22" height="12" fill="#27c93f" rx="2" />
+    <rect x="84" y="0" width="22" height="12" fill="#58a6ff" rx="2" />
+    <rect x="112" y="0" width="22" height="12" fill="#cba6f7" rx="2" />
+    <rect x="140" y="0" width="22" height="12" fill="#a6e3a1" rx="2" />
+    <rect x="168" y="0" width="22" height="12" fill="#8b949e" rx="2" />
+  </g>
+
+  <!-- Blinking Shell Prompt Indicator -->
+  <g transform="translate(40, 520)" class="text-mono" font-size="12">
+    <text x="0" y="0" fill="{{ theme.prompt }}" font-weight="bold">$ <tspan fill="{{ theme.text }}">git commit -m "update"</tspan></text>
+    <rect x="195" y="-10" width="8" height="14" class="cursor" />
+  </g>
+
+  <!-- ========================================== -->
+  <!-- VERTICAL DIVIDER                           -->
+  <!-- ========================================== -->
+  <line x1="330" y1="38" x2="330" y2="575" stroke="{{ theme.border }}" stroke-width="1.5" />
+
+  <!-- ========================================== -->
+  <!-- RIGHT COLUMN (Neofetch details & Content) -->
+  <!-- ========================================== -->
+
+  <!-- Profile Header -->
+  <text x="360" y="75" fill="{{ theme.accent }}" class="text-sans" font-size="24" font-weight="800" filter="url(#glow-accent)">{{ name }}</text>
+  <text x="360" y="97" fill="{{ theme.text }}" class="text-sans" font-size="13" font-weight="600">{{ title }}</text>
+  <text x="360" y="115" fill="{{ theme.subtext }}" class="text-sans" font-size="12" font-style="italic" font-weight="400">{{ subtitle }}</text>
+
+  <!-- Dashed Line Divider -->
+  <line x1="360" y1="132" x2="910" y2="132" stroke="{{ theme.border }}" stroke-width="1" stroke-dasharray="4 4" />
+
+  <!-- Terminal Info (Neofetch report style) -->
+  <g transform="translate(360, 155)" class="text-mono" font-size="12.5" fill="{{ theme.text }}">
+    {%- for key, val in terminal_info.items() %}
+    {%- set y_offset = loop.index0 * 20 %}
+    <text x="0" y="{{ y_offset }}">
+      <tspan fill="{{ theme.accent }}" font-weight="bold">{{ key }}</tspan>
+      <tspan fill="{{ theme.subtext }}">{{ "." * (14 - key|length) }} </tspan>
+      <tspan>{{ val }}</tspan>
+    </text>
+    {%- endfor %}
+  </g>
+
+  <!-- Dashed Line Divider -->
+  <line x1="360" y1="322" x2="910" y2="322" stroke="{{ theme.border }}" stroke-width="1" stroke-dasharray="4 4" />
+
+  <!-- GitHub Statistics Section -->
+  <text x="360" y="343" fill="{{ theme.accent_green }}" class="text-mono" font-size="12.5" font-weight="bold">> {{ username }} --stats</text>
+  
+  <g class="text-mono" font-size="12" fill="{{ theme.text }}">
+    <!-- Row 1 -->
+    <text x="360" y="367"><tspan fill="{{ theme.subtext }}">Repos:</tspan> {{ stats.repositories }}</text>
+    <text x="495" y="367"><tspan fill="{{ theme.subtext }}">Stars:</tspan> {{ stats.stars }}</text>
+    <text x="630" y="367"><tspan fill="{{ theme.subtext }}">Followers:</tspan> {{ stats.followers }}</text>
+    <text x="770" y="367"><tspan fill="{{ theme.subtext }}">Following:</tspan> {{ stats.following }}</text>
+    
+    <!-- Row 2 -->
+    <text x="360" y="390"><tspan fill="{{ theme.subtext }}">Commits:</tspan> {{ stats.commits }}</text>
+    <text x="495" y="390"><tspan fill="{{ theme.subtext }}">Contribs:</tspan> {{ stats.contributions }}</text>
+    <text x="630" y="390"><tspan fill="{{ theme.subtext }}">PRs:</tspan> {{ stats.pull_requests }}</text>
+    <text x="770" y="390"><tspan fill="{{ theme.subtext }}">Issues:</tspan> {{ stats.issues }}</text>
+  </g>
+
+  <!-- Dashed Line Divider -->
+  <line x1="360" y1="412" x2="910" y2="412" stroke="{{ theme.border }}" stroke-width="1" stroke-dasharray="4 4" />
+
+  <!-- Projects Section Header -->
+  <text x="360" y="428" fill="{{ theme.accent_yellow }}" class="text-mono" font-size="11.5" font-weight="bold">> cat featured_projects.md</text>
+
+  <!-- 2x2 Grid of Featured Projects -->
+  {%- for project in projects %}
+  {%- set col = loop.index0 % 2 %}
+  {%- set row = loop.index0 // 2 %}
+  {%- set x = 360 + col * 280 %}
+  {%- set y = 438 + row * 43 %}
+  <g class="project-card" transform="translate({{ x }}, {{ y }})">
+    <rect width="270" height="36" rx="4" fill="{{ theme.terminal_bg }}" stroke="{{ theme.border }}" stroke-width="1" class="card-border" />
+    <a href="https://github.com/{{ username }}/{{ project.name | replace(' ', '-') | lower }}" target="_blank">
+      <!-- Clickable transparent overlay -->
+      <rect width="270" height="36" rx="4" fill="transparent" />
+      <text x="10" y="14" fill="{{ theme.accent }}" class="text-sans" font-size="11" font-weight="bold">{{ project.name }}</text>
+      <text x="10" y="26" fill="{{ theme.subtext }}" class="text-sans" font-size="9" font-weight="400">{{ project.description }}</text>
+    </a>
+  </g>
+  {%- endfor %}
+
+  <!-- Tech Stack Grid (16 badges, 8 cols x 2 rows) -->
+  {%- for tech in tech_stack %}
+  {%- set col = loop.index0 % 8 %}
+  {%- set row = loop.index0 // 8 %}
+  {%- set x = 360 + col * 70 %}
+  {%- set y = 528 + row * 21 %}
+  <g class="tech-badge" transform="translate({{ x }}, {{ y }})">
+    <rect width="64" height="17" rx="3.5" fill="{{ theme.terminal_bg }}" stroke="{{ theme.border }}" stroke-width="1" class="badge-border" />
+    <text x="32" y="11.5" fill="{{ theme.text }}" class="text-mono" font-size="9" text-anchor="middle" font-weight="bold">{{ tech }}</text>
+  </g>
+  {%- endfor %}
+</svg>
