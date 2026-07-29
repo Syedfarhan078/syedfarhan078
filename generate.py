@@ -8,6 +8,7 @@ Compatible with dark and light themes, completely self-contained and zero-API de
 import os
 import base64
 import sys
+import re
 from typing import Dict, Any, Optional
 from jinja2 import Environment, FileSystemLoader
 
@@ -20,10 +21,11 @@ except ImportError:
 import config
 
 
-def crop_profile_image(input_path: str, output_path: str, size: tuple = (180, 180)) -> Optional[str]:
+def process_profile_image(input_path: str, output_path: str, max_size: int = 220) -> Optional[str]:
     """
-    Crops the input image to a perfect circle, resizes it, and saves it as a PNG.
-    Returns the base64 encoded string of the processed PNG.
+    Crops the input image to a square, resizes it proportionally (up to max_size),
+    optimizes it, and saves it as a PNG.
+    Returns the base64 encoded data URI of the processed PNG.
     """
     if not os.path.exists(input_path):
         print(f"Warning: Input image '{input_path}' not found. Profile image processing will be skipped.")
@@ -34,35 +36,38 @@ def crop_profile_image(input_path: str, output_path: str, size: tuple = (180, 18
         img = Image.open(input_path)
         img = ImageOps.exif_transpose(img)
 
-        # Center crop to a square
+        # Center crop to a perfect square (preserving aspect ratio during crop)
         width, height = img.size
         min_dim = min(width, height)
+        
         left = (width - min_dim) / 2
         top = (height - min_dim) / 2
         right = (width + min_dim) / 2
         bottom = (height + min_dim) / 2
+        
         img_cropped = img.crop((left, top, right, bottom))
 
-        # Resize to target dimension
-        img_resized = img_cropped.resize(size, Image.Resampling.LANCZOS)
+        # Determine output dimensions proportionally (keeping it within max_size limit)
+        target_size = (max_size, max_size)
+        img_resized = img_cropped.resize(target_size, Image.Resampling.LANCZOS)
 
-        # Create alpha mask for the circle
-        mask = Image.new("L", size, 0)
+        # Create an alpha mask to make it a perfect circle
+        mask = Image.new("L", target_size, 0)
         draw = ImageDraw.Draw(mask)
-        draw.ellipse((0, 0) + size, fill=255)
+        draw.ellipse((0, 0) + target_size, fill=255)
 
-        # Apply mask and convert to RGBA
-        output_img = Image.new("RGBA", size, (0, 0, 0, 0))
+        # Apply circular mask onto transparent canvas
+        output_img = Image.new("RGBA", target_size, (0, 0, 0, 0))
         output_img.paste(img_resized, (0, 0), mask=mask)
 
         # Ensure assets directory exists
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
-        # Save output image
-        output_img.save(output_path, "PNG")
+        # Save output image with maximum PNG optimization to reduce footprint
+        output_img.save(output_path, "PNG", optimize=True)
         print(f"Successfully processed profile image: '{output_path}'")
 
-        # Read output image bytes and encode to base64
+        # Read bytes and encode to base64
         with open(output_path, "rb") as f:
             encoded_bytes = base64.b64encode(f.read())
             return f"data:image/png;base64,{encoded_bytes.decode('utf-8')}"
@@ -81,41 +86,51 @@ def get_default_avatar_base64() -> str:
     return f"data:image/png;base64,{pixel_b64}"
 
 
+def minify_svg(svg_content: str) -> str:
+    """
+    Minifies the SVG content by removing XML comments, extra spaces, and empty lines
+    to optimize file sizes for high-performance rendering.
+    """
+    # Remove XML comments (except preserving CSS structural media scheme selectors if any)
+    # Match standard XML comments <!-- ... -->
+    clean_svg = re.sub(r"<!--(?!.*?Generated).*?-->", "", svg_content, flags=re.DOTALL)
+    
+    # Strip unnecessary whitespaces and empty lines
+    minified_lines = []
+    for line in clean_svg.splitlines():
+        stripped_line = line.strip()
+        if stripped_line:
+            minified_lines.append(stripped_line)
+            
+    return "\n".join(minified_lines)
+
+
 def generate_svg(theme_name: str, theme_config: Dict[str, Any], profile_b64: str) -> None:
     """
-    Renders the SVG template with the given theme configurations and saves the file.
+    Renders the SVG template with the given theme configurations, minifies the output,
+    and writes the final SVG file.
     """
     template_file = f"{theme_name}.svg.jinja"
     output_file = f"{theme_name}_mode.svg"
 
     # Set up Jinja2 environment
     template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
-    if not os.path.exists(template_dir):
-        os.makedirs(template_dir, exist_ok=True)
-        print(f"Created templates directory at '{template_dir}'")
-
     env = Environment(loader=FileSystemLoader(template_dir))
 
     try:
         template = env.get_template(template_file)
     except Exception as e:
         print(f"Error loading template '{template_file}': {e}")
-        print("Creating placeholder templates because they do not exist yet.")
         return
 
-    # Prep the rendering context
+    # Prep the rendering context based on grouped config structure
     context = {
-        "username": config.USERNAME,
-        "name": config.NAME,
-        "title": config.TITLE,
-        "subtitle": config.SUBTITLE,
-        "location": config.LOCATION,
-        "education": config.EDUCATION,
+        "profile": config.PROFILE,
         "terminal_info": config.TERMINAL_INFO,
         "ascii_logo": config.ASCII_LOGO.strip("\n"),
-        "stats": config.STATS,
         "projects": config.PROJECTS,
         "tech_stack": config.TECH_STACK,
+        "socials": config.SOCIALS,
         "integrations": config.INTEGRATIONS,
         "theme": theme_config,
         "profile_image_b64": profile_b64,
@@ -125,34 +140,36 @@ def generate_svg(theme_name: str, theme_config: Dict[str, Any], profile_b64: str
 
     try:
         rendered_svg = template.render(context)
+        # Minify output to ensure it remains very lightweight
+        minified_svg_content = minify_svg(rendered_svg)
+        
         with open(output_file, "w", encoding="utf-8") as f:
-            f.write(rendered_svg)
-        print(f"Successfully generated '{output_file}'")
+            f.write(minified_svg_content)
+        print(f"Successfully generated '{output_file}' (Size: {len(minified_svg_content)/1024:.2f} KB)")
     except Exception as e:
         print(f"Error rendering template '{template_file}': {e}")
 
 
 def main() -> None:
     """
-    Main entry point for generating SVGs.
+    Main entry point for generating the SVGs.
     """
     print("Starting GitHub Profile Terminal SVG Generation...")
     
     # Process profile image
-    raw_img = os.path.join("assets", config.PROFILE_PHOTO_INPUT)
-    # Check if raw_img exists in root instead (during some local testing runs)
-    if not os.path.exists(raw_img) and os.path.exists(config.PROFILE_PHOTO_INPUT):
-        raw_img = config.PROFILE_PHOTO_INPUT
+    raw_img = os.path.join("assets", config.PROFILE["photo_input"])
+    if not os.path.exists(raw_img) and os.path.exists(config.PROFILE["photo_input"]):
+        raw_img = config.PROFILE["photo_input"]
 
-    processed_img = config.PROFILE_PHOTO_OUTPUT
+    processed_img = config.PROFILE["photo_output"]
 
-    print(f"Looking for raw profile image at: '{raw_img}'")
-    profile_b64 = crop_profile_image(raw_img, processed_img)
+    print(f"Processing raw image: '{raw_img}'...")
+    profile_b64 = process_profile_image(raw_img, processed_img, max_size=150)
 
     if not profile_b64:
         # Check if already processed image exists
         if os.path.exists(processed_img):
-            print(f"Using already processed image: '{processed_img}'")
+            print(f"Using existing processed image: '{processed_img}'")
             with open(processed_img, "rb") as f:
                 encoded_bytes = base64.b64encode(f.read())
                 profile_b64 = f"data:image/png;base64,{encoded_bytes.decode('utf-8')}"
@@ -162,7 +179,7 @@ def main() -> None:
 
     # Generate SVGs for each theme
     for theme_name, theme_config in config.THEMES.items():
-        print(f"Generating SVG for theme: '{theme_name}'")
+        print(f"Generating SVG for theme: '{theme_name}'...")
         generate_svg(theme_name, theme_config, profile_b64)
 
     print("SVG Generation completed successfully!")
