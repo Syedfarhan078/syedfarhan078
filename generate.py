@@ -115,7 +115,7 @@ def generate_svg(theme_name: str, theme_config: Dict[str, Any], profile_b64: str
 
     # Set up Jinja2 environment
     template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
-    env = Environment(loader=FileSystemLoader(template_dir))
+    env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
 
     try:
         template = env.get_template(template_file)

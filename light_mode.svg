@@ -47,7 +47,7 @@
 </linearGradient>
 </defs>
 <style>
-/* Styling & Animations */
+/* Styling and Animations */
 .terminal-window {
 box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
 }
@@ -159,7 +159,7 @@ fill: #0969da;
 <line x1="330" y1="38" x2="330" y2="575" stroke="#d0d7de" stroke-width="1.5" />
 <g class="text-mono">
 <text x="360" y="75" fill="#0969da" font-size="22" font-weight="800" clip-path="url(#name-clip)">Syed Farhan Ahmed</text>
-<text x="360" y="97" fill="#24292f" font-size="13" font-weight="600" clip-path="url(#title-clip)">AI & Machine Learning Engineer</text>
+<text x="360" y="97" fill="#24292f" font-size="13" font-weight="600" clip-path="url(#title-clip)">AI &amp; Machine Learning Engineer</text>
 <text x="360" y="115" fill="#57606a" font-size="11.5" font-weight="400" clip-path="url(#subtitle-clip)">Full Stack Developer | Open Source Enthusiast | Problem Solver</text>
 </g>
 <line x1="360" y1="132" x2="910" y2="132" stroke="#d0d7de" stroke-width="1" stroke-dasharray="4 4" />
