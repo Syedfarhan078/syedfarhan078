@@ -6,7 +6,6 @@ Compatible with dark and light themes, completely self-contained and zero-API de
 """
 
 import os
-import base64
 import sys
 import re
 from typing import Dict, Any, Optional
@@ -21,81 +20,68 @@ except ImportError:
 import config
 
 
-def process_profile_image(input_path: str, output_path: str, max_size: int = 220) -> Optional[str]:
+def image_to_ascii(image_path: str, cols: int = 28, invert: bool = False) -> str:
     """
-    Crops the input image to a square, resizes it proportionally (up to max_size),
-    optimizes it, and saves it as a PNG.
-    Returns the base64 encoded data URI of the processed PNG.
+    Converts a raw image to a square-cropped ASCII art block.
+    Compensates for the aspect ratio of monospace characters (~0.55).
     """
-    if not os.path.exists(input_path):
-        print(f"Warning: Input image '{input_path}' not found. Profile image processing will be skipped.")
-        return None
+    if not os.path.exists(image_path):
+        print(f"Warning: Photo '{image_path}' not found. ASCII photo will be blank.")
+        return ""
 
     try:
-        # Open and transpose based on EXIF orientation if it exists
-        img = Image.open(input_path)
+        img = Image.open(image_path)
         img = ImageOps.exif_transpose(img)
 
-        # Center crop to a perfect square (preserving aspect ratio during crop)
+        # Center crop to a perfect square
         width, height = img.size
         min_dim = min(width, height)
-        
         left = (width - min_dim) / 2
         top = (height - min_dim) / 2
         right = (width + min_dim) / 2
         bottom = (height + min_dim) / 2
-        
         img_cropped = img.crop((left, top, right, bottom))
 
-        # Determine output dimensions proportionally (keeping it within max_size limit)
-        target_size = (max_size, max_size)
-        img_resized = img_cropped.resize(target_size, Image.Resampling.LANCZOS)
+        # monospaced character aspect ratio correction (taller than wide)
+        rows = int(cols * 0.55)
 
-        # Create an alpha mask to make it a perfect circle
-        mask = Image.new("L", target_size, 0)
-        draw = ImageDraw.Draw(mask)
-        draw.ellipse((0, 0) + target_size, fill=255)
+        # Resize to columns x rows
+        img_resized = img_cropped.resize((cols, rows), Image.Resampling.BILINEAR)
+        img_gray = img_resized.convert("L")
 
-        # Apply circular mask onto transparent canvas
-        output_img = Image.new("RGBA", target_size, (0, 0, 0, 0))
-        output_img.paste(img_resized, (0, 0), mask=mask)
+        # ASCII character density ramp
+        chars = " .:-=+*#%@"
+        if invert:
+            # Invert for light background (where dark ink maps to dense chars)
+            chars = chars[::-1]
 
-        # Ensure assets directory exists
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
-        # Save output image with maximum PNG optimization to reduce footprint
-        output_img.save(output_path, "PNG", optimize=True)
-        print(f"Successfully processed profile image: '{output_path}'")
+        pixels = img_gray.getdata()
+        ascii_chars = []
+        for pixel in pixels:
+            # Scale 0-255 to character indices
+            idx = int(pixel * (len(chars) - 1) / 255)
+            ascii_chars.append(chars[idx])
 
-        # Read bytes and encode to base64
-        with open(output_path, "rb") as f:
-            encoded_bytes = base64.b64encode(f.read())
-            return f"data:image/png;base64,{encoded_bytes.decode('utf-8')}"
+        # Group character lists into lines
+        lines = []
+        for i in range(0, len(ascii_chars), cols):
+            lines.append("".join(ascii_chars[i:i+cols]))
+
+        return "\n".join(lines)
 
     except Exception as e:
-        print(f"Error processing profile image: {e}")
-        return None
-
-
-def get_default_avatar_base64() -> str:
-    """
-    Returns a default fallback SVG/PNG circle avatar base64 string if the image processing fails.
-    """
-    # A tiny inline transparent/gray 1x1 PNG as placeholder
-    pixel_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
-    return f"data:image/png;base64,{pixel_b64}"
+        print(f"Error converting image to ASCII: {e}")
+        return ""
 
 
 def minify_svg(svg_content: str) -> str:
     """
-    Minifies the SVG content by removing XML comments, extra spaces, and empty lines
-    to optimize file sizes for high-performance rendering.
+    Minifies the SVG content by removing XML comments, extra spaces, and empty lines.
     """
-    # Remove XML comments (except preserving CSS structural media scheme selectors if any)
-    # Match standard XML comments <!-- ... -->
+    # Remove XML comments
     clean_svg = re.sub(r"<!--(?!.*?Generated).*?-->", "", svg_content, flags=re.DOTALL)
     
-    # Strip unnecessary whitespaces and empty lines
+    # Strip whitespaces and empty lines
     minified_lines = []
     for line in clean_svg.splitlines():
         stripped_line = line.strip()
@@ -105,7 +91,7 @@ def minify_svg(svg_content: str) -> str:
     return "\n".join(minified_lines)
 
 
-def generate_svg(theme_name: str, theme_config: Dict[str, Any], profile_b64: str) -> None:
+def generate_svg(theme_name: str, theme_config: Dict[str, Any], ascii_photo: str) -> None:
     """
     Renders the SVG template with the given theme configurations, minifies the output,
     and writes the final SVG file.
@@ -113,7 +99,7 @@ def generate_svg(theme_name: str, theme_config: Dict[str, Any], profile_b64: str
     template_file = f"{theme_name}.svg.jinja"
     output_file = f"{theme_name}_mode.svg"
 
-    # Set up Jinja2 environment
+    # Set up Jinja2 environment with autoescape enabled
     template_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
     env = Environment(loader=FileSystemLoader(template_dir), autoescape=True)
 
@@ -123,7 +109,7 @@ def generate_svg(theme_name: str, theme_config: Dict[str, Any], profile_b64: str
         print(f"Error loading template '{template_file}': {e}")
         return
 
-    # Prep the rendering context based on grouped config structure
+    # Prep context
     context = {
         "profile": config.PROFILE,
         "terminal_info": config.TERMINAL_INFO,
@@ -133,14 +119,13 @@ def generate_svg(theme_name: str, theme_config: Dict[str, Any], profile_b64: str
         "socials": config.SOCIALS,
         "integrations": config.INTEGRATIONS,
         "theme": theme_config,
-        "profile_image_b64": profile_b64,
+        "profile_ascii": ascii_photo,
         "svg_width": config.SVG_WIDTH,
         "svg_height": config.SVG_HEIGHT,
     }
 
     try:
         rendered_svg = template.render(context)
-        # Minify output to ensure it remains very lightweight
         minified_svg_content = minify_svg(rendered_svg)
         
         with open(output_file, "w", encoding="utf-8") as f:
@@ -152,35 +137,29 @@ def generate_svg(theme_name: str, theme_config: Dict[str, Any], profile_b64: str
 
 def main() -> None:
     """
-    Main entry point for generating the SVGs.
+    Main entry point.
     """
     print("Starting GitHub Profile Terminal SVG Generation...")
     
-    # Process profile image
+    # Locate raw profile picture
     raw_img = os.path.join("assets", config.PROFILE["photo_input"])
     if not os.path.exists(raw_img) and os.path.exists(config.PROFILE["photo_input"]):
         raw_img = config.PROFILE["photo_input"]
 
-    processed_img = config.PROFILE["photo_output"]
-
-    print(f"Processing raw image: '{raw_img}'...")
-    profile_b64 = process_profile_image(raw_img, processed_img, max_size=150)
-
-    if not profile_b64:
-        # Check if already processed image exists
-        if os.path.exists(processed_img):
-            print(f"Using existing processed image: '{processed_img}'")
-            with open(processed_img, "rb") as f:
-                encoded_bytes = base64.b64encode(f.read())
-                profile_b64 = f"data:image/png;base64,{encoded_bytes.decode('utf-8')}"
-        else:
-            print("No profile image found. Using default placeholder.")
-            profile_b64 = get_default_avatar_base64()
+    print(f"Raw image path: '{raw_img}'")
 
     # Generate SVGs for each theme
     for theme_name, theme_config in config.THEMES.items():
+        print(f"Converting image to ASCII for theme: '{theme_name}'...")
+        # Dark theme renders on a dark background: light parts of the image should map to denser chars.
+        # Light theme renders on a white background: dark parts of the image should map to denser chars.
+        invert_map = (theme_name == "light")
+        
+        # cols = 28 maps to ~126px width, fitting beautifully in the sub-window
+        ascii_photo = image_to_ascii(raw_img, cols=28, invert=invert_map)
+        
         print(f"Generating SVG for theme: '{theme_name}'...")
-        generate_svg(theme_name, theme_config, profile_b64)
+        generate_svg(theme_name, theme_config, ascii_photo)
 
     print("SVG Generation completed successfully!")
 

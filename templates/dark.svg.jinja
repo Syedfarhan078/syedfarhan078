@@ -17,22 +17,6 @@
       </feMerge>
     </filter>
 
-    <filter id="glow-profile" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="5" result="blur" />
-      <feComponentTransfer in="blur" result="glow">
-        <feFuncA type="linear" slope="0.45" />
-      </feComponentTransfer>
-      <feMerge>
-        <feMergeNode in="glow" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-
-    <!-- Clip path for circular profile picture -->
-    <clipPath id="profile-clip">
-      <circle cx="165" cy="255" r="65" />
-    </clipPath>
-
     <!-- Native SVG Typing Animation Clips -->
     <clipPath id="name-clip">
       <rect x="360" y="50" width="0" height="40">
@@ -58,7 +42,7 @@
   </defs>
 
   <style>
-    /* Styling and Animations */
+    /* Styling & Animations */
     .terminal-window {
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
     }
@@ -113,12 +97,6 @@
       stroke-width: 1.25px;
       fill: {{ theme.border }};
     }
-    .social-link {
-      transition: fill 0.25s ease;
-    }
-    .social-link:hover {
-      fill: {{ theme.accent }};
-    }
   </style>
 
   <!-- Main Terminal Window Frame -->
@@ -135,7 +113,7 @@
   </g>
 
   <!-- Terminal Window Title -->
-  <text x="475" y="26" fill="{{ theme.subtext }}" class="text-mono" font-size="12" text-anchor="middle">{{ profile.username }}@linux-desktop: ~</text>
+  <text x="475" y="26" fill="{{ theme.subtext }}" class="text-mono" font-size="12" text-anchor="middle">{{ profile.username }}@windows-desktop: ~</text>
 
   <!-- ========================================== -->
   <!-- LEFT COLUMN (ASCII, Photo, System Info)    -->
@@ -150,13 +128,27 @@
     </text>
   </g>
 
-  <!-- Profile Image Container -->
-  <!-- Glow Circle Background -->
-  <circle cx="165" cy="255" r="66" fill="none" stroke="{{ theme.accent }}" stroke-width="3" filter="url(#glow-profile)" opacity="0.85" />
-  <circle cx="165" cy="255" r="65" fill="none" stroke="{{ theme.border }}" stroke-width="1.5" />
-  
-  <!-- The Circular Profile Image -->
-  <image href="{{ profile_image_b64 }}" x="100" y="190" width="130" height="130" clip-path="url(#profile-clip)" />
+  <!-- ASCII Photo Feed Sub-Window -->
+  <g transform="translate(0, 0)">
+    <!-- Window Border frame -->
+    <rect x="75" y="190" width="180" height="150" rx="4" fill="none" stroke="{{ theme.border }}" stroke-width="1" />
+    <text x="85" y="185" fill="{{ theme.subtext }}" class="text-mono" font-size="9" font-weight="bold">[ PHOTO FEED ]</text>
+    
+    <!-- Rendered ASCII portrait -->
+    <g transform="translate(102, 198)">
+      <text fill="{{ theme.accent }}" class="text-mono" font-size="7.5" font-weight="bold" xml:space="preserve" opacity="0.85">
+        {%- for line in profile_ascii.split('\n') %}
+        <tspan x="0" dy="8.5">{{ line }}</tspan>
+        {%- endfor %}
+      </text>
+    </g>
+
+    <!-- Glowing horizontal scan laser line -->
+    <line x1="76" y1="191" x2="254" y2="191" stroke="{{ theme.accent }}" stroke-width="1.5" opacity="0.45">
+      <animate attributeName="y1" values="191; 339; 191" dur="5s" repeatCount="indefinite" />
+      <animate attributeName="y2" values="191; 339; 191" dur="5s" repeatCount="indefinite" />
+    </line>
+  </g>
 
   <!-- Terminal Shell Status Information -->
   <g transform="translate(40, 360)" class="text-mono" font-size="12" fill="{{ theme.text }}">
