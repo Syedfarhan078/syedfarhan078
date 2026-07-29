@@ -24,7 +24,7 @@ PROFILE = {
         "System Design",
         "Open Source"
     ],
-    "photo_input": "raw_profile.jpg",
+    "photo_input": "raw_profile.png",
     "photo_output": "assets/profile.png"
 }
 

@@ -134,14 +134,8 @@
     <rect x="75" y="190" width="180" height="150" rx="4" fill="none" stroke="{{ theme.border }}" stroke-width="1" />
     <text x="85" y="185" fill="{{ theme.subtext }}" class="text-mono" font-size="9" font-weight="bold">[ PHOTO FEED ]</text>
     
-    <!-- Rendered ASCII portrait -->
-    <g transform="translate(102, 198)">
-      <text fill="{{ theme.accent }}" class="text-mono" font-size="7.5" font-weight="bold" xml:space="preserve" opacity="0.85">
-        {%- for line in profile_ascii.split('\n') %}
-        <tspan x="0" dy="8.5">{{ line }}</tspan>
-        {%- endfor %}
-      </text>
-    </g>
+    <!-- Rendered ASCII portrait image -->
+    <image href="{{ profile_image_b64 }}" x="105" y="200" width="120" height="130" />
 
     <!-- Glowing horizontal scan laser line -->
     <line x1="76" y1="191" x2="254" y2="191" stroke="{{ theme.accent }}" stroke-width="1.5" opacity="0.45">
